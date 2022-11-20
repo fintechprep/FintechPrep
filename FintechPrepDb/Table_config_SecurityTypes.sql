@@ -1,0 +1,26 @@
+USE [FintechPrepDb]
+GO
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [config].[SecurityTypes](
+	[Code] [varchar](4) NOT NULL,
+	[Name] [varchar](50) NOT NULL,
+ CONSTRAINT [PK_SecurityTypes] PRIMARY KEY CLUSTERED 
+(
+	[Code] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [config].[SecurityTypes]  WITH CHECK ADD  CONSTRAINT [Length_Code_SecurityTypes] CHECK  ((datalength([Code])=(4)))
+GO
+
+ALTER TABLE [config].[SecurityTypes] CHECK CONSTRAINT [Length_Code_SecurityTypes]
+GO
+
+
