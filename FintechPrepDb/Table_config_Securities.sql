@@ -11,7 +11,8 @@ CREATE TABLE [config].[Securities](
 	[ExpiryDate] date NULL,
 	[ParentSecurity] varchar (25) NOT NULL,
 	[OptionType] varchar(4) NULL,
-	[Sector] varchar(50) NULL
+	[Sector] varchar(50) NULL,
+	FxUsdPer BIT NULL
 )
 
 ALTER TABLE FinTechPrepDb.config.[Securities] 
@@ -33,6 +34,9 @@ FOREIGN KEY (AlternateCurr) REFERENCES config.Currencies (Code)
 ALTER TABLE config.Securities
 ADD CONSTRAINT [FK_MarketCode_Securities]
 FOREIGN KEY (MarketCode) REFERENCES config.Markets (Code)
+
+
+
 
 
 
