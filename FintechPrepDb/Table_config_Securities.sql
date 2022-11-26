@@ -11,8 +11,7 @@ CREATE TABLE [config].[Securities](
 	[ExpiryDate] date NULL,
 	[ParentSecurity] varchar (25) NOT NULL,
 	[OptionType] varchar(4) NULL,
-	[Sector] varchar(50) NULL,
-	FxUsdPer BIT NULL
+	[Sector] varchar(50) NULL
 )
 
 ALTER TABLE FinTechPrepDb.config.[Securities] 
