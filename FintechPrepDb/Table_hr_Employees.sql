@@ -25,3 +25,8 @@ ADD CONSTRAINT PK_Employees Primary Key
 ALTER TABLE hr.Employees
 ADD CONSTRAINT Check_MonthlySalary_Employees
 CHECK (MonthlySalary > 0)
+
+-- Change made to columns
+ALTER TABLE hr.Employees
+DROP COLUMN EndDate
+GO
