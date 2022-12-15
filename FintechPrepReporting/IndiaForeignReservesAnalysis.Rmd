@@ -1,0 +1,186 @@
+---
+title: "India Foreign Reserves"
+author: "FintechPrepTeam"
+date: '`r paste("Drafted on - ", format(Sys.Date(),"%d %B %y"))`'
+output:
+  word_document: default
+subtitle: Weekly Analysis
+--- 
+
+``` {r, include = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+``` 
+
+```{r, echo=FALSE}
+#install.packages('knitr', dependencies = TRUE)
+#install.packages("rmarkdown")
+#install.packages("odbc")
+#install.packages("tinytex")
+#install.packages("pandoc")
+#install.packages("ggplot2")
+#install.packages("gridExtra")
+library(knitr)
+library(rmarkdown)
+library(DBI)
+library(pandoc)
+library(ggplot2)
+library(gridExtra)
+tinytex::install_tinytex(force=TRUE)
+connection<-DBI::dbConnect(odbc::odbc(),
+                           Driver = "SQL Server",
+                           Server = "localhost\\SQLEXPRESS",
+                           Database = "FintechPrepDb",
+                           Trusted_Connection = "True")
+
+#Query foreign reserves data
+endDate<-Sys.Date() #report date is max date in db<= endDate
+if (!is.na(commandArgs(trailingOnly=T)[1]))
+{
+  endDate<-as.Date(commandArgs(trailingOnly=T)[1])  
+}
+
+startDate<-endDate - (365*5)
+sqlReserves<-paste("SELECT * FROM economy.GetIndianForeignReserves ( '",format(startDate,"%d %B %y"),"','",format(endDate,"%d %B %y"),"') ORDER BY [Date] DESC")
+sqlAnalytics<-"
+              SELECT
+                MAX(RupeeFCA) AS MaxRupeeFCA,
+                MAX(DollarFCA) AS MaxDollarFCA,
+                MAX(RupeeGold) AS MaxRupeeGold,
+                MAX(DollarGold) AS MaxDollarGold,
+                MAX(RupeeRTP) AS MaxRupeeRTP,
+                MAX(DollarRTP) AS MaxDollarRTP,
+                MAX(RupeeSDR) AS MaxRupeeSDR,
+                MAX(DollarSDR) AS MaxDollarSDR,
+                MAX(MillionSDR) AS MaxMillionSDR,
+                MAX(RupeeTotal) AS MaxRupeeTotal,
+                MAX(DollarTotal) AS MaxDollarTotal
+              FROM
+              economy.GetIndianForeignReserves(NULL,NULL)
+"
+
+#Execute sql
+reservesData<-dbGetQuery(connection,sqlReserves)
+reservesDataFormatted<-reservesData
+reservesDataFormatted$Date<-as.Date(reservesDataFormatted$Date)
+reservesDataFormatted<-reservesDataFormatted[order(reservesDataFormatted$Date,decreasing = TRUE),]
+analyticsData<-dbGetQuery(connection, sqlAnalytics)
+dbDisconnect(connection)
+
+#Data for each period
+reportReleaseDate<-format(max(reservesDataFormatted$Date),"%d %B %y")
+latestData<-reservesDataFormatted[1:1,]
+previousData<-reservesDataFormatted[2:2,]
+
+#Summary table
+summaryTable<-data.frame(ReserveType=c("Total Reserves","FCA","Gold","RTP","SDRs"),USDBillions=c(round(latestData$DollarTotal/1000,2),round(latestData$DollarFCA/1000,2),round(latestData$DollarGold/1000,2), round(latestData$DollarRTP/1000,2),round(latestData$DollarSDR/1000,2)))
+
+#Total Reserve Analysis
+rupeeTotalPctChange<-round(100*(latestData$RupeeTotal/previousData$RupeeTotal - 1),2)
+dollarTotalPctChange<-round(100*(latestData$DollarTotal/previousData$DollarTotal - 1),2)
+currentBillionDollarTotalReserves<-round(latestData$DollarTotal/1000,2)
+currentCroreRupeesTotalReserves<-round(latestData$RupeeTotal,2)
+previousBillionDollarTotalReserves<-round(previousData$DollarTotal/1000,2)
+previousCroreRupeesTotalReserves<-round(previousData$RupeeTotal,2)
+
+#FCA Analysis
+rupeeFCAPctChange<-round(100*(latestData$RupeeFCA/previousData$RupeeFCA - 1),2)
+dollarFCAPctChange<-round(100*(latestData$DollarFCA/previousData$DollarFCA - 1),2)
+currentBillionDollarFCA<-round(latestData$DollarFCA/1000,2)
+currentCroreRupeesFCA<-round(latestData$RupeeFCA,2)
+previousBillionDollarFCA<-round(previousData$DollarFCA/1000,2)
+previousCroreRupeesFCA<-round(previousData$RupeeFCA,2)
+
+#Gold Analysis
+rupeeGoldPctChange<-round(100*(latestData$RupeeGold/previousData$RupeeGold - 1),2)
+dollarGoldPctChange<-round(100*(latestData$DollarGold/previousData$DollarGold - 1),2)
+currentBillionDollarGold<-round(latestData$DollarGold/1000,2)
+currentCroreRupeesGold<-round(latestData$RupeeGold,2)
+previousBillionDollarGold<-round(previousData$DollarGold/1000,2)
+previousCroreRupeesGold<-round(previousData$RupeeGold,2)
+
+#RTP Analysis
+rupeeRTPPctChange<-round(100*(latestData$RupeeRTP/previousData$RupeeRTP - 1),2)
+dollarRTPPctChange<-round(100*(latestData$DollarRTP/previousData$DollarRTP - 1),2)
+currentBillionDollarRTP<-round(latestData$DollarRTP/1000,2)
+currentCroreRupeesRTP<-round(latestData$RupeeRTP,2)
+previousBillionDollarRTP<-round(previousData$DollarRTP/1000,2)
+previousCroreRupeesRTP<-round(previousData$RupeeRTP,2)
+
+#SDR Analysis
+dollarSDRPctChange<-round(100*(latestData$DollarSDR/previousData$DollarSDR - 1),2)
+currentBillionDollarSDR<-round(latestData$DollarSDR/1000,2)
+currentMillionUnitsSDR<-latestData$MillionSDR
+```
+
+## Description
+
+The Reserve Bank of India (RBI) releases Weekly Foreign Exchange Reserves data. The reserves are split into 4 categories, each of which will be discussed in this report:\
+1) Foreign Currency Assets (FCA)\
+2) Gold\
+3) Reserve Tranche Position (RTP)\
+4) Special Drawing Rights (SDR)\
+Each category is denominated in Rupees (INR) Crores and US Dollar (USD) millions.
+
+## Summary
+
+The RBI has released the Weekly Foreign Exchange Reserves data on `r reportReleaseDate`. The latest position of the reserves is as follows: `r kable(summaryTable)`
+
+``` {r, echo = FALSE}
+plotA<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=DollarTotal/1000),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="Total Reserves (USD billion)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+plotB<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=RupeeTotal),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="Total Reserves (Rupees crores)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+grid.arrange(plotA,plotB,ncol=2)
+```
+
+
+The total reserves changed by `r rupeeTotalPctChange`% in INR terms vs. `r dollarTotalPctChange`% in USD terms. Previous week, the total reserves were USD `r previousBillionDollarTotalReserves` billion or INR `r format(previousCroreRupeesTotalReserves,big.mark=",")` crores. The maximum total reserves held by RBI in USD is `r round(analyticsData$MaxDollarTotal/1000,2)` billion or INR `r format(analyticsData$MaxRupeeTotal,big.mark=",")` crores.
+
+## Market Update
+Provide market Updates if any.
+
+## Foreign Currency Assets (FCA)
+FCA includes a portfolio denominated in major currencies including US Dollar, Euro, Pound Sterling and Japanese Yen to name a few. The portfolio consists of securities (debt securities, derivative instruments), deposits at other central banks and BIS (Bank of International Settlements) and deposits with foreign commercial banks.
+
+``` {r, echo = FALSE}
+plotA<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=DollarFCA/1000),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="FCA (USD billion)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+plotB<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=RupeeFCA),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="FCA (Rupees crores)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+grid.arrange(plotA,plotB,ncol=2)
+```
+
+
+FCA changed by `r rupeeFCAPctChange`% in INR terms vs. `r dollarFCAPctChange`% in USD terms. Previous week, the FCA was USD `r previousBillionDollarFCA` billion or INR `r format(previousCroreRupeesFCA,big.mark=",")` crores. The maximum FCA held by RBI in USD is `r round(analyticsData$MaxDollarFCA/1000,2)` billion or INR `r format(analyticsData$MaxRupeeFCA,big.mark=",")` crores.
+
+## Gold
+RBI holds physical gold domestically, at the Bank of England and at Bank of International Settlements (BIS)
+
+``` {r, echo = FALSE}
+plotA<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=DollarGold/1000),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="Gold (USD billion)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+plotB<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=RupeeGold),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="Gold (Rupees crores)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+grid.arrange(plotA,plotB,ncol=2)
+```
+
+Gold reserves changed by `r rupeeGoldPctChange`% in INR terms vs. `r dollarGoldPctChange`% in USD terms. Previous week, gold holdings was USD `r previousBillionDollarGold` billion or INR `r format(previousCroreRupeesGold,big.mark=",")` crores. The maximum gold held by RBI in USD is `r round(analyticsData$MaxDollarGold/1000,2)` billion or INR `r format(analyticsData$MaxRupeeGold,big.mark=",")` crores.
+
+## Reserve Tranche Position (RTP)
+Every member country contributes to the International Monetary Fund (IMF). The Reserve Tranche Position is that portion of contribution that the member country can access without paying any interest. This has been ~25% of the member country’s quota, but of course it can change.
+
+``` {r, echo = FALSE}
+plotA<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=DollarRTP/1000),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="RTP (USD billion)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+plotB<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=RupeeRTP),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="RTP (Rupees crores)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+grid.arrange(plotA,plotB,ncol=2)
+```
+
+RTP changed by `r rupeeRTPPctChange`% in INR terms vs. `r dollarRTPPctChange`% in USD terms. Previous week, RTP was USD `r previousBillionDollarRTP` billion or INR `r format(previousCroreRupeesRTP,big.mark=",")` crores. The maximum RTP held by RBI in USD is `r round(analyticsData$MaxDollarRTP/1000,2)` billion or INR `r format(analyticsData$MaxRupeeRTP,big.mark=",")` crores.
+
+## Special Drawing Rights (SDR)
+SDR is NOT a currency. Its is valued based on a basket of currencies – US Dollar, Euro, Chinese Renminbi, Japanese Yen, Pound Sterling.
+
+
+``` {r, echo = FALSE}
+plotA<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=DollarSDR/1000),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="SDR (USD billion)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+plotB<-ggplot()+geom_line(reservesDataFormatted,mapping=aes(x=Date,y=MillionSDR),color="blue")+scale_x_date(breaks="9 month", date_label="%b %y",limits=c(startDate,endDate))+theme_bw()+labs(y="",x="Month-Year",title="SDR (Million units)")+theme(plot.title=element_text(size=8),axis.title=element_text(size=8),axis.text=element_text(size=8,angle=90))
+grid.arrange(plotA,plotB,ncol=2)
+```
+
+SDR changed by `r dollarSDRPctChange`% compared to previous week. SDR holdings is currently USD `r currentBillionDollarSDR` billion or `r currentMillionUnitsSDR` million units. The maximum SDR held by RBI in USD is `r round(analyticsData$MaxDollarSDR/1000,2)` billion or `r analyticsData$MaxMillionSDR` million units.
+
+
