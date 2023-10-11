@@ -5,6 +5,6 @@ CREATE TABLE hr.EmployeeEndDate
 )
 
 ALTER TABLE FinTechPrepDb.hr.EmployeeEndDate 
-ADD CONSTRAINT [PK_EmployeeEndDate] PRIMARY KEY (EmployeeId, EndDate)
+ADD CONSTRAINT [PK_EmployeeEndDate] PRIMARY KEY (EmployeeId)
 GO
 
